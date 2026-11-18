@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="BepInExConfigCheck.cs" />
+    <Compile Include="../../Integration/ClientSettings.cs" />
+    <Reference Include="BepInEx.Core" HintPath="$(LoaderPath)/BepInEx.Core.dll" />
+    <Reference Include="SemanticVersioning" HintPath="$(LoaderPath)/SemanticVersioning.dll" />
+  </ItemGroup>
+</Project>

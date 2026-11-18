@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <AssemblyName>KromaRec.PhotonAuthProbe</AssemblyName>
+    <LoaderPath Condition="'$(LoaderPath)' == ''">$(GamePath)/BepInEx/core</LoaderPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="BepInEx.Core" HintPath="$(LoaderPath)/BepInEx.Core.dll" Private="false" />
+    <Reference Include="BepInEx.Unity.IL2CPP" HintPath="$(LoaderPath)/BepInEx.Unity.IL2CPP.dll" Private="false" />
+  </ItemGroup>
+</Project>

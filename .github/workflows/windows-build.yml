@@ -1,0 +1,137 @@
+name: KromaRec Patch Windows
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      build_plugin:
+        description: Build the patch using authorized private 20230414 interop
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+
+jobs:
+  checks:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '6.0.428'
+      - name: Validate PowerShell syntax
+        shell: pwsh
+        run: ./scripts/Test-PowerShellSyntax.ps1
+      - name: Run managed protocol checks
+        shell: pwsh
+        run: dotnet run --project tests/ProtocolChecks.csproj -c Release
+      - name: Get pinned loader
+        shell: pwsh
+        run: ./scripts/Get-BuildLoader.ps1 -Destination (Join-Path $env:RUNNER_TEMP 'kromarec-loader')
+      - name: Test loader configuration and build diagnostic
+        shell: pwsh
+        run: |
+          $game = Join-Path $env:RUNNER_TEMP 'kromarec-loader'
+          $core = Join-Path $game 'BepInEx/core'
+          dotnet run --project tests/BepInExConfig/BepInExConfigChecks.csproj -c Release "-p:LoaderPath=$core" -- config/net.kromarec.patch.cfg
+          if ($LASTEXITCODE -ne 0) { throw 'BepInEx configuration test failed.' }
+          ./build.ps1 -GamePath $game -ProbeOnly
+      - name: Test metadata verifier using synthetic fixtures
+        shell: pwsh
+        run: |
+          $core = Join-Path $env:RUNNER_TEMP 'kromarec-loader/BepInEx/core'
+          dotnet run --project tests/MetadataChecks/MetadataChecks.csproj -c Release "-p:LoaderPath=$core"
+          if ($LASTEXITCODE -ne 0) { throw 'Synthetic verifier regression failed.' }
+      - name: Test build failure classification
+        shell: pwsh
+        run: |
+          $core = Join-Path $env:RUNNER_TEMP 'kromarec-loader/BepInEx/core'
+          ./tests/BuildReadiness.ps1 -LoaderPath $core
+      - name: Upload standalone diagnostic
+        uses: actions/upload-artifact@v4
+        with:
+          name: KromaRec-PhotonAuthProbe
+          path: tools/PhotonAuthProbe/bin/Release/net6.0/KromaRec.PhotonAuthProbe.dll
+          if-no-files-found: error
+      - name: Report native build availability
+        if: github.event_name != 'workflow_dispatch' || !inputs.build_plugin || github.ref_name != github.event.repository.default_branch
+        shell: pwsh
+        run: |
+          'Main patch build skipped. The public runner has no generated 20230414 interop. A default-branch manual run can use an authorized reference source.' |
+            Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+
+  plugin:
+    if: github.event_name == 'workflow_dispatch' && inputs.build_plugin && github.ref_name == github.event.repository.default_branch
+    needs: checks
+    runs-on: windows-2022
+    environment: windows-interop
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '6.0.428'
+      - name: Provision authorized references
+        id: interop
+        shell: pwsh
+        env:
+          INTEROP_URL: ${{ secrets.KROMAREC_INTEROP_URL }}
+          INTEROP_SHA256: ${{ vars.KROMAREC_INTEROP_SHA256 }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:INTEROP_URL)) {
+            'Main patch build skipped. Authorized 20230414 interop is missing.' |
+              Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            Write-Warning 'Authorized 20230414 interop is missing.'
+            return
+          }
+          if ($env:INTEROP_SHA256 -notmatch '^[0-9a-fA-F]{64}$') {
+            throw 'Configure a valid SHA-256 for the authorized interop archive.'
+          }
+          $source = $null
+          if (![Uri]::TryCreate($env:INTEROP_URL, [UriKind]::Absolute, [ref]$source) -or
+              $source.Scheme -ne 'https' -or $source.UserInfo) {
+            throw 'The interop source must be an HTTPS URL without embedded user info.'
+          }
+          $archive = Join-Path $env:RUNNER_TEMP 'kromarec-interop.zip'
+          try {
+            Invoke-WebRequest -Uri $source -OutFile $archive
+          } catch {
+            throw 'Could not fetch the authorized interop archive.'
+          }
+          if ((Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash -ne $env:INTEROP_SHA256) {
+            throw 'Interop archive hash mismatch.'
+          }
+          $staging = Join-Path $env:RUNNER_TEMP 'kromarec-interop'
+          Expand-Archive -LiteralPath $archive -DestinationPath $staging
+          $references = Join-Path $staging 'BepInEx/interop'
+          if (!(Test-Path -LiteralPath $references -PathType Container)) {
+            throw 'The interop archive is missing BepInEx/interop.'
+          }
+          $game = Join-Path $env:RUNNER_TEMP 'kromarec-build'
+          ./scripts/Get-BuildLoader.ps1 -Destination $game
+          $target = Join-Path $game 'BepInEx/interop'
+          New-Item -ItemType Directory -Path $target -Force | Out-Null
+          Get-ChildItem -LiteralPath $references -File -Filter '*.dll' |
+            Copy-Item -Destination $target
+          'ready=true' | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+      - name: Validate interop and build patch
+        if: steps.interop.outputs.ready == 'true'
+        shell: pwsh
+        run: ./build.ps1 -GamePath (Join-Path $env:RUNNER_TEMP 'kromarec-build') -ReferencesOnly
+      - name: Upload patch DLL
+        if: steps.interop.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: KromaRec-Patch-20230414
+          path: bin/Release/net6.0/KromaRec.Patch.dll
+          if-no-files-found: error

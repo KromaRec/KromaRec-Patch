@@ -1,0 +1,957 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+        <AssemblyName>KromaRec.Patch</AssemblyName>
+        <Product>KromaRec Patch for Rec Room 20230414</Product>
+        <Version>0.3.1</Version>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <LangVersion>10.0</LangVersion>
+        <RootNamespace>RecNetPlugin</RootNamespace>
+    </PropertyGroup>
+  
+    <ItemGroup>
+        <Compile Remove="tests/**/*.cs;tools/**/*.cs" />
+    </ItemGroup>
+
+    <!-- GamePath = root of a Rec Room install whose BepInEx/interop/ has been populated.
+         It is intentionally NOT hardcoded here so the repo is distributable. Set it via ONE of:
+           1. a local GamePath.props file (copy GamePath.props.example -> GamePath.props; gitignored)
+           2. a RECROOM_PATH environment variable
+           3. the command line: dotnet build -p:GamePath="D:\Path\To\RecRoom" -->
+    <Import Project="$(MSBuildThisFileDirectory)GamePath.props" Condition="Exists('$(MSBuildThisFileDirectory)GamePath.props')" />
+
+    <PropertyGroup>
+        <GamePath Condition="'$(GamePath)' == '' and '$(RECROOM_PATH)' != ''">$(RECROOM_PATH)</GamePath>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <LoaderPath Condition="'$(LoaderPath)' == ''">$(GamePath)/BepInEx/core</LoaderPath>
+    </PropertyGroup>
+
+    <Target Name="ValidateGamePath" BeforeTargets="ResolveAssemblyReferences;Build">
+        <Error Condition="'$(GamePath)' == '' Or !Exists('$(GamePath)/BepInEx/interop/Assembly-CSharp.dll')"
+               Code="KRBUILD_INTEROP" Text="Point GamePath at the 20230414 depot after launching it once with BepInEx 6.0.0-pre.2 IL2CPP. See BUILDING.md." />
+        <Error Condition="!Exists('$(GamePath)/BepInEx/interop/PhotonRealtime.dll') Or !Exists('$(GamePath)/BepInEx/interop/Photon3Unity3D.dll')"
+               Code="KRBUILD_INTEROP" Text="Missing generated 20230414 Photon interop assemblies. See BUILDING.md." />
+        <Error Condition="!Exists('$(LoaderPath)/BepInEx.Core.dll') Or !Exists('$(LoaderPath)/BepInEx.Unity.IL2CPP.dll') Or !Exists('$(LoaderPath)/0Harmony.dll') Or !Exists('$(LoaderPath)/Il2CppInterop.Runtime.dll') Or !Exists('$(LoaderPath)/Il2CppInterop.Common.dll')"
+               Code="KRBUILD_LOADER" Text="Missing BepInEx 6 IL2CPP or HarmonyX in LoaderPath. See BUILDING.md." />
+    </Target>
+
+    <ItemDefinitionGroup>
+        <Reference>
+            <Private>false</Private>
+        </Reference>
+    </ItemDefinitionGroup>
+    <ItemGroup>
+        <Reference Include="BepInEx.Core" HintPath="$(LoaderPath)/BepInEx.Core.dll" />
+        <Reference Include="BepInEx.Unity.IL2CPP" HintPath="$(LoaderPath)/BepInEx.Unity.IL2CPP.dll" />
+        <Reference Include="Il2CppInterop.Runtime" HintPath="$(LoaderPath)/Il2CppInterop.Runtime.dll" />
+        <Reference Include="Il2CppInterop.Common" HintPath="$(LoaderPath)/Il2CppInterop.Common.dll" />
+        <Reference Include="0Harmony" HintPath="$(LoaderPath)/0Harmony.dll" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Reference Include="Assembly-CSharp" Condition="Exists('$(GamePath)/BepInEx/interop/Assembly-CSharp.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Assembly-CSharp.dll</HintPath>
+      </Reference>
+      <Reference Include="Assembly-CSharp-firstpass" Condition="Exists('$(GamePath)/BepInEx/interop/Assembly-CSharp-firstpass.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Assembly-CSharp-firstpass.dll</HintPath>
+      </Reference>
+      <Reference Include="AstarPathfindingProject" Condition="Exists('$(GamePath)/BepInEx/interop/AstarPathfindingProject.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\AstarPathfindingProject.dll</HintPath>
+      </Reference>
+      <Reference Include="Backtrace.Unity" Condition="Exists('$(GamePath)/BepInEx/interop/Backtrace.Unity.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Backtrace.Unity.dll</HintPath>
+      </Reference>
+      <Reference Include="Circuits.All.Injection.Debugging" Condition="Exists('$(GamePath)/BepInEx/interop/Circuits.All.Injection.Debugging.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Circuits.All.Injection.Debugging.dll</HintPath>
+      </Reference>
+      <Reference Include="Circuits.All.Injection.PhotonNetSystem" Condition="Exists('$(GamePath)/BepInEx/interop/Circuits.All.Injection.PhotonNetSystem.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Circuits.All.Injection.PhotonNetSystem.dll</HintPath>
+      </Reference>
+      <Reference Include="Circuits.All.Injection.UnityEngine" Condition="Exists('$(GamePath)/BepInEx/interop/Circuits.All.Injection.UnityEngine.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Circuits.All.Injection.UnityEngine.dll</HintPath>
+      </Reference>
+      <Reference Include="Circuits.All.Mock" Condition="Exists('$(GamePath)/BepInEx/interop/Circuits.All.Mock.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Circuits.All.Mock.dll</HintPath>
+      </Reference>
+      <Reference Include="Circuits.All.RecRoom" Condition="Exists('$(GamePath)/BepInEx/interop/Circuits.All.RecRoom.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Circuits.All.RecRoom.dll</HintPath>
+      </Reference>
+      <Reference Include="Circuits.Dynamic.Core.NetSystem" Condition="Exists('$(GamePath)/BepInEx/interop/Circuits.Dynamic.Core.NetSystem.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Circuits.Dynamic.Core.NetSystem.dll</HintPath>
+      </Reference>
+      <Reference Include="Circuits.Dynamic.Mock" Condition="Exists('$(GamePath)/BepInEx/interop/Circuits.Dynamic.Mock.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Circuits.Dynamic.Mock.dll</HintPath>
+      </Reference>
+      <Reference Include="Circuits.Shared.Core.ByteCode" Condition="Exists('$(GamePath)/BepInEx/interop/Circuits.Shared.Core.ByteCode.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Circuits.Shared.Core.ByteCode.dll</HintPath>
+      </Reference>
+      <Reference Include="Circuits.Shared.CV2.Dependencies" Condition="Exists('$(GamePath)/BepInEx/interop/Circuits.Shared.CV2.Dependencies.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Circuits.Shared.CV2.Dependencies.dll</HintPath>
+      </Reference>
+      <Reference Include="Circuits.Shared.RecRoom.Engine" Condition="Exists('$(GamePath)/BepInEx/interop/Circuits.Shared.RecRoom.Engine.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Circuits.Shared.RecRoom.Engine.dll</HintPath>
+      </Reference>
+      <Reference Include="Circuits.Shared.RecRoom.Objects" Condition="Exists('$(GamePath)/BepInEx/interop/Circuits.Shared.RecRoom.Objects.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Circuits.Shared.RecRoom.Objects.dll</HintPath>
+      </Reference>
+      <Reference Include="Circuits.Shared.Utilities" Condition="Exists('$(GamePath)/BepInEx/interop/Circuits.Shared.Utilities.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Circuits.Shared.Utilities.dll</HintPath>
+      </Reference>
+      <Reference Include="Circuits.Static.Core.CompileSystem" Condition="Exists('$(GamePath)/BepInEx/interop/Circuits.Static.Core.CompileSystem.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Circuits.Static.Core.CompileSystem.dll</HintPath>
+      </Reference>
+      <Reference Include="Circuits.Static.Core.GraphSystem" Condition="Exists('$(GamePath)/BepInEx/interop/Circuits.Static.Core.GraphSystem.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Circuits.Static.Core.GraphSystem.dll</HintPath>
+      </Reference>
+      <Reference Include="Circuits.Static.Core.NetSystem" Condition="Exists('$(GamePath)/BepInEx/interop/Circuits.Static.Core.NetSystem.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Circuits.Static.Core.NetSystem.dll</HintPath>
+      </Reference>
+      <Reference Include="Circuits.Static.Core.RequestReduce" Condition="Exists('$(GamePath)/BepInEx/interop/Circuits.Static.Core.RequestReduce.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Circuits.Static.Core.RequestReduce.dll</HintPath>
+      </Reference>
+      <Reference Include="Circuits.Static.Core.TreeSystem" Condition="Exists('$(GamePath)/BepInEx/interop/Circuits.Static.Core.TreeSystem.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Circuits.Static.Core.TreeSystem.dll</HintPath>
+      </Reference>
+      <Reference Include="Circuits.Static.Core.TypeCheckSystem" Condition="Exists('$(GamePath)/BepInEx/interop/Circuits.Static.Core.TypeCheckSystem.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Circuits.Static.Core.TypeCheckSystem.dll</HintPath>
+      </Reference>
+      <Reference Include="Circuits.Static.Core.TypeSystem" Condition="Exists('$(GamePath)/BepInEx/interop/Circuits.Static.Core.TypeSystem.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Circuits.Static.Core.TypeSystem.dll</HintPath>
+      </Reference>
+      <Reference Include="Circuits.Static.Core.UnificationSystem" Condition="Exists('$(GamePath)/BepInEx/interop/Circuits.Static.Core.UnificationSystem.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Circuits.Static.Core.UnificationSystem.dll</HintPath>
+      </Reference>
+      <Reference Include="Circuits.Static.EV" Condition="Exists('$(GamePath)/BepInEx/interop/Circuits.Static.EV.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Circuits.Static.EV.dll</HintPath>
+      </Reference>
+      <Reference Include="Circuits.Static.RecRoom" Condition="Exists('$(GamePath)/BepInEx/interop/Circuits.Static.RecRoom.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Circuits.Static.RecRoom.dll</HintPath>
+      </Reference>
+      <Reference Include="Circuits.Static.Utilities" Condition="Exists('$(GamePath)/BepInEx/interop/Circuits.Static.Utilities.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Circuits.Static.Utilities.dll</HintPath>
+      </Reference>
+      <Reference Include="Circuits.V2" Condition="Exists('$(GamePath)/BepInEx/interop/Circuits.V2.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Circuits.V2.dll</HintPath>
+      </Reference>
+      <Reference Include="Codestage.Anticheattoolkit.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/Codestage.Anticheattoolkit.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Codestage.Anticheattoolkit.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="CSCore" Condition="Exists('$(GamePath)/BepInEx/interop/CSCore.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\CSCore.dll</HintPath>
+      </Reference>
+      <Reference Include="EasyAntiCheat.Client" Condition="Exists('$(GamePath)/BepInEx/interop/EasyAntiCheat.Client.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\EasyAntiCheat.Client.dll</HintPath>
+      </Reference>
+      <Reference Include="Google.Protobuf" Condition="Exists('$(GamePath)/BepInEx/interop/Google.Protobuf.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Google.Protobuf.dll</HintPath>
+      </Reference>
+      <Reference Include="ICSharpCode.SharpZipLib" Condition="Exists('$(GamePath)/BepInEx/interop/ICSharpCode.SharpZipLib.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\ICSharpCode.SharpZipLib.dll</HintPath>
+      </Reference>
+      <Reference Include="Il2CppMicrosoft.Bcl.HashCode" Condition="Exists('$(GamePath)/BepInEx/interop/Il2CppMicrosoft.Bcl.HashCode.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Il2CppMicrosoft.Bcl.HashCode.dll</HintPath>
+      </Reference>
+      <Reference Include="Il2CppMicrosoft.CognitiveServices.Speech.csharp" Condition="Exists('$(GamePath)/BepInEx/interop/Il2CppMicrosoft.CognitiveServices.Speech.csharp.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Il2CppMicrosoft.CognitiveServices.Speech.csharp.dll</HintPath>
+      </Reference>
+      <Reference Include="Il2CppMicrosoft.Toolkit.HighPerformance" Condition="Exists('$(GamePath)/BepInEx/interop/Il2CppMicrosoft.Toolkit.HighPerformance.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Il2CppMicrosoft.Toolkit.HighPerformance.dll</HintPath>
+      </Reference>
+      <Reference Include="Il2CppMono.Security" Condition="Exists('$(GamePath)/BepInEx/interop/Il2CppMono.Security.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Il2CppMono.Security.dll</HintPath>
+      </Reference>
+      <Reference Include="Il2Cppmscorlib" Condition="Exists('$(GamePath)/BepInEx/interop/Il2Cppmscorlib.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Il2Cppmscorlib.dll</HintPath>
+      </Reference>
+      <Reference Include="Il2CppSystem" Condition="Exists('$(GamePath)/BepInEx/interop/Il2CppSystem.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Il2CppSystem.dll</HintPath>
+      </Reference>
+      <Reference Include="Il2CppSystem.Buffers" Condition="Exists('$(GamePath)/BepInEx/interop/Il2CppSystem.Buffers.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Il2CppSystem.Buffers.dll</HintPath>
+      </Reference>
+      <Reference Include="Il2CppSystem.Configuration" Condition="Exists('$(GamePath)/BepInEx/interop/Il2CppSystem.Configuration.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Il2CppSystem.Configuration.dll</HintPath>
+      </Reference>
+      <Reference Include="Il2CppSystem.Core" Condition="Exists('$(GamePath)/BepInEx/interop/Il2CppSystem.Core.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Il2CppSystem.Core.dll</HintPath>
+      </Reference>
+      <Reference Include="Il2CppSystem.Data" Condition="Exists('$(GamePath)/BepInEx/interop/Il2CppSystem.Data.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Il2CppSystem.Data.dll</HintPath>
+      </Reference>
+      <Reference Include="Il2CppSystem.Drawing" Condition="Exists('$(GamePath)/BepInEx/interop/Il2CppSystem.Drawing.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Il2CppSystem.Drawing.dll</HintPath>
+      </Reference>
+      <Reference Include="Il2CppSystem.Memory" Condition="Exists('$(GamePath)/BepInEx/interop/Il2CppSystem.Memory.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Il2CppSystem.Memory.dll</HintPath>
+      </Reference>
+      <Reference Include="Il2CppSystem.Numerics" Condition="Exists('$(GamePath)/BepInEx/interop/Il2CppSystem.Numerics.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Il2CppSystem.Numerics.dll</HintPath>
+      </Reference>
+      <Reference Include="Il2CppSystem.Numerics.Vectors" Condition="Exists('$(GamePath)/BepInEx/interop/Il2CppSystem.Numerics.Vectors.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Il2CppSystem.Numerics.Vectors.dll</HintPath>
+      </Reference>
+      <Reference Include="Il2CppSystem.Runtime.CompilerServices.Unsafe" Condition="Exists('$(GamePath)/BepInEx/interop/Il2CppSystem.Runtime.CompilerServices.Unsafe.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Il2CppSystem.Runtime.CompilerServices.Unsafe.dll</HintPath>
+      </Reference>
+      <Reference Include="Il2CppSystem.Runtime.Serialization" Condition="Exists('$(GamePath)/BepInEx/interop/Il2CppSystem.Runtime.Serialization.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Il2CppSystem.Runtime.Serialization.dll</HintPath>
+      </Reference>
+      <Reference Include="Il2CppSystem.Xml" Condition="Exists('$(GamePath)/BepInEx/interop/Il2CppSystem.Xml.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Il2CppSystem.Xml.dll</HintPath>
+      </Reference>
+      <Reference Include="Il2CppSystem.Xml.Linq" Condition="Exists('$(GamePath)/BepInEx/interop/Il2CppSystem.Xml.Linq.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Il2CppSystem.Xml.Linq.dll</HintPath>
+      </Reference>
+      <Reference Include="Kyub.EmojiSearch" Condition="Exists('$(GamePath)/BepInEx/interop/Kyub.EmojiSearch.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Kyub.EmojiSearch.dll</HintPath>
+      </Reference>
+      <Reference Include="Logger.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/Logger.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Logger.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="NewPlayerChallenges.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/NewPlayerChallenges.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\NewPlayerChallenges.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="Newtonsoft.Json" Condition="Exists('$(GamePath)/BepInEx/interop/Newtonsoft.Json.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Newtonsoft.Json.dll</HintPath>
+      </Reference>
+      <Reference Include="Nito.Collections.Deque" Condition="Exists('$(GamePath)/BepInEx/interop/Nito.Collections.Deque.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Nito.Collections.Deque.dll</HintPath>
+      </Reference>
+      <Reference Include="Oculus.Platform" Condition="Exists('$(GamePath)/BepInEx/interop/Oculus.Platform.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Oculus.Platform.dll</HintPath>
+      </Reference>
+      <Reference Include="Oculus.VR" Condition="Exists('$(GamePath)/BepInEx/interop/Oculus.VR.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Oculus.VR.dll</HintPath>
+      </Reference>
+      <Reference Include="OSA" Condition="Exists('$(GamePath)/BepInEx/interop/OSA.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\OSA.dll</HintPath>
+      </Reference>
+      <Reference Include="Pathfinding.ClipperLib" Condition="Exists('$(GamePath)/BepInEx/interop/Pathfinding.ClipperLib.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Pathfinding.ClipperLib.dll</HintPath>
+      </Reference>
+      <Reference Include="Pathfinding.Ionic.Zip.Reduced" Condition="Exists('$(GamePath)/BepInEx/interop/Pathfinding.Ionic.Zip.Reduced.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Pathfinding.Ionic.Zip.Reduced.dll</HintPath>
+      </Reference>
+      <Reference Include="Pathfinding.Poly2Tri" Condition="Exists('$(GamePath)/BepInEx/interop/Pathfinding.Poly2Tri.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Pathfinding.Poly2Tri.dll</HintPath>
+      </Reference>
+      <Reference Include="Photon3Unity3D" Condition="Exists('$(GamePath)/BepInEx/interop/Photon3Unity3D.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Photon3Unity3D.dll</HintPath>
+      </Reference>
+      <Reference Include="PhotonChat" Condition="Exists('$(GamePath)/BepInEx/interop/PhotonChat.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\PhotonChat.dll</HintPath>
+      </Reference>
+      <Reference Include="PhotonRealtime" Condition="Exists('$(GamePath)/BepInEx/interop/PhotonRealtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\PhotonRealtime.dll</HintPath>
+      </Reference>
+      <Reference Include="PhotonUnityNetworking" Condition="Exists('$(GamePath)/BepInEx/interop/PhotonUnityNetworking.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\PhotonUnityNetworking.dll</HintPath>
+      </Reference>
+      <Reference Include="PhotonUnityNetworking.Utilities" Condition="Exists('$(GamePath)/BepInEx/interop/PhotonUnityNetworking.Utilities.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\PhotonUnityNetworking.Utilities.dll</HintPath>
+      </Reference>
+      <Reference Include="PhotonVoice" Condition="Exists('$(GamePath)/BepInEx/interop/PhotonVoice.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\PhotonVoice.dll</HintPath>
+      </Reference>
+      <Reference Include="PhotonVoice.API" Condition="Exists('$(GamePath)/BepInEx/interop/PhotonVoice.API.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\PhotonVoice.API.dll</HintPath>
+      </Reference>
+      <Reference Include="PhotonVoice.PUN" Condition="Exists('$(GamePath)/BepInEx/interop/PhotonVoice.PUN.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\PhotonVoice.PUN.dll</HintPath>
+      </Reference>
+      <Reference Include="Pngcs" Condition="Exists('$(GamePath)/BepInEx/interop/Pngcs.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Pngcs.dll</HintPath>
+      </Reference>
+      <Reference Include="RecNet.Interfaces" Condition="Exists('$(GamePath)/BepInEx/interop/RecNet.Interfaces.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecNet.Interfaces.dll</HintPath>
+      </Reference>
+      <Reference Include="RecNet.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecNet.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecNet.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Agdxgidisplays.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Agdxgidisplays.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Agdxgidisplays.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.AgInitialization.Interfaces" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.AgInitialization.Interfaces.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.AgInitialization.Interfaces.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.AgInitialization.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.AgInitialization.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.AgInitialization.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Agmobilear.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Agmobilear.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Agmobilear.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Analytics.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Analytics.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Analytics.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.ApplicationLifecycle.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.ApplicationLifecycle.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.ApplicationLifecycle.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Assetbundles.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Assetbundles.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Assetbundles.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Async" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Async.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Async.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Attributes.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Attributes.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Attributes.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Audio.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Audio.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Audio.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.AutomationTests.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.AutomationTests.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.AutomationTests.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.BitPacker.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.BitPacker.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.BitPacker.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Build.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Build.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Build.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Challenges.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Challenges.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Challenges.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Chat.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Chat.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Chat.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.CircuitsV1.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.CircuitsV1.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.CircuitsV1.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.ClusterLods.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.ClusterLods.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.ClusterLods.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.CodeGen.Attributes" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.CodeGen.Attributes.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.CodeGen.Attributes.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Commandline.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Commandline.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Commandline.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.CommonDataTypes.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.CommonDataTypes.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.CommonDataTypes.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Configloader.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Configloader.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Configloader.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Connectables.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Connectables.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Connectables.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Content.Authoring.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Content.Authoring.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Content.Authoring.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Creation.Interfaces.UX.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Creation.Interfaces.UX.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Creation.Interfaces.UX.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Creation.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Creation.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Creation.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.CultureUtil.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.CultureUtil.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.CultureUtil.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Datastructures.CollisionMesh.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Datastructures.CollisionMesh.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Datastructures.CollisionMesh.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Datastructures.CullingGroupManager.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Datastructures.CullingGroupManager.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Datastructures.CullingGroupManager.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Datastructures.OverridableFields.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Datastructures.OverridableFields.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Datastructures.OverridableFields.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Datastructures.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Datastructures.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Datastructures.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Datastructures.Singletons.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Datastructures.Singletons.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Datastructures.Singletons.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Debugging.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Debugging.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Debugging.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.EditorHelpers.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.EditorHelpers.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.EditorHelpers.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Encoding.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Encoding.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Encoding.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Experiments.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Experiments.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Experiments.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.FastLines.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.FastLines.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.FastLines.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.FuzzySearch.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.FuzzySearch.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.FuzzySearch.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.GameSystems.Interfaces" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.GameSystems.Interfaces.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.GameSystems.Interfaces.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Imageutils.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Imageutils.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Imageutils.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Imposters.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Imposters.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Imposters.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Instantiation.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Instantiation.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Instantiation.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.iOSNative.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.iOSNative.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.iOSNative.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.JuniorAccountVisibility.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.JuniorAccountVisibility.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.JuniorAccountVisibility.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Keepsakes.Interfaces" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Keepsakes.Interfaces.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Keepsakes.Interfaces.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Keepsakes.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Keepsakes.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Keepsakes.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Keepsakes.UnityExtensions" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Keepsakes.UnityExtensions.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Keepsakes.UnityExtensions.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Localization.Service" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Localization.Service.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Localization.Service.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Maker.Core.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Maker.Core.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Maker.Core.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Maker.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Maker.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Maker.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.MemoryStats.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.MemoryStats.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.MemoryStats.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Minijson.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Minijson.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Minijson.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.MobileHome.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.MobileHome.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.MobileHome.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Nativemesh.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Nativemesh.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Nativemesh.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Networking.DataTypes.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Networking.DataTypes.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Networking.DataTypes.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Networking.NetworkedObjects.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Networking.NetworkedObjects.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Networking.NetworkedObjects.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Networking.PhotonImpl.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Networking.PhotonImpl.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Networking.PhotonImpl.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Networking.RoomLoading.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Networking.RoomLoading.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Networking.RoomLoading.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Networking.RPC.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Networking.RPC.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Networking.RPC.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Networking.SynchronizedFields.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Networking.SynchronizedFields.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Networking.SynchronizedFields.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.NoEngine.Algorithms.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.NoEngine.Algorithms.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.NoEngine.Algorithms.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.NoEngine.Common.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.NoEngine.Common.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.NoEngine.Common.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.NoEngine.DataStructures.Performance.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.NoEngine.DataStructures.Performance.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.NoEngine.DataStructures.Performance.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.NoEngine.DataStructures.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.NoEngine.DataStructures.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.NoEngine.DataStructures.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.NoEngine.Debugging.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.NoEngine.Debugging.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.NoEngine.Debugging.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.NoEngine.JetBrains.Annotations" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.NoEngine.JetBrains.Annotations.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.NoEngine.JetBrains.Annotations.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.ObjectModel.Attributes.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.ObjectModel.Attributes.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.ObjectModel.Attributes.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.ObjectModel.BitPacker.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.ObjectModel.BitPacker.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.ObjectModel.BitPacker.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.ObjectModel.ComponentData.Generated.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.ObjectModel.ComponentData.Generated.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.ObjectModel.ComponentData.Generated.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.ObjectModel.ComponentData.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.ObjectModel.ComponentData.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.ObjectModel.ComponentData.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.ObjectModel.ConfigUI.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.ObjectModel.ConfigUI.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.ObjectModel.ConfigUI.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.ObjectModel.Entities.Core.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.ObjectModel.Entities.Core.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.ObjectModel.Entities.Core.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.ObjectModel.Entities.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.ObjectModel.Entities.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.ObjectModel.Entities.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.ObjectModel.Interfaces.ConfigUI.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.ObjectModel.Interfaces.ConfigUI.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.ObjectModel.Interfaces.ConfigUI.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.ObjectModel.Interfaces.Prefabs.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.ObjectModel.Interfaces.Prefabs.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.ObjectModel.Interfaces.Prefabs.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.ObjectModel.Interfaces.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.ObjectModel.Interfaces.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.ObjectModel.Interfaces.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.ObjectModel.Prefabs.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.ObjectModel.Prefabs.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.ObjectModel.Prefabs.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.ObjectModel.Properties.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.ObjectModel.Properties.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.ObjectModel.Properties.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.ObjectModel.Protobufs.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.ObjectModel.Protobufs.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.ObjectModel.Protobufs.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.ObjectModel.RendererV1.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.ObjectModel.RendererV1.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.ObjectModel.RendererV1.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.ObjectModel.Services.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.ObjectModel.Services.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.ObjectModel.Services.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.ObjectModel.Systems.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.ObjectModel.Systems.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.ObjectModel.Systems.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.ObjectModel.Telemetry.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.ObjectModel.Telemetry.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.ObjectModel.Telemetry.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.ObjectModel.Transmission.PUN.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.ObjectModel.Transmission.PUN.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.ObjectModel.Transmission.PUN.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.ObjectModel.Transmission.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.ObjectModel.Transmission.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.ObjectModel.Transmission.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.ObjectPool.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.ObjectPool.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.ObjectPool.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Persistence.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Persistence.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Persistence.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.PlatformNotifications.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.PlatformNotifications.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.PlatformNotifications.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Preferences.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Preferences.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Preferences.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.PrefParsers.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.PrefParsers.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.PrefParsers.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.ProgressionEvents.Interfaces" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.ProgressionEvents.Interfaces.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.ProgressionEvents.Interfaces.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.ProgressionEvents.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.ProgressionEvents.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.ProgressionEvents.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Promises.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Promises.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Promises.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Protobuf.Debugging.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Protobuf.Debugging.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Protobuf.Debugging.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Protobuf.Extensions.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Protobuf.Extensions.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Protobuf.Extensions.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Protobuf.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Protobuf.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Protobuf.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Protobuf.UnityExtensions.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Protobuf.UnityExtensions.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Protobuf.UnityExtensions.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Rbex.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Rbex.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Rbex.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.ResourceManagement.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.ResourceManagement.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.ResourceManagement.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.RoomLoading.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.RoomLoading.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.RoomLoading.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.RoomPermissions.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.RoomPermissions.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.RoomPermissions.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Rranticheat.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Rranticheat.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Rranticheat.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.RRUI.Core.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.RRUI.Core.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.RRUI.Core.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.RRUI.Data.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.RRUI.Data.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.RRUI.Data.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.RRUI.Navigation.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.RRUI.Navigation.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.RRUI.Navigation.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.RRUI.Theme.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.RRUI.Theme.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.RRUI.Theme.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Scheduling.Interface.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Scheduling.Interface.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Scheduling.Interface.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Scheduling.Scheduler.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Scheduling.Scheduler.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Scheduling.Scheduler.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Scheduling.Schedules.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Scheduling.Schedules.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Scheduling.Schedules.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.ShapeRendering.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.ShapeRendering.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.ShapeRendering.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Streamingaudio.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Streamingaudio.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Streamingaudio.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Studio.Common.LocalTesting" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Studio.Common.LocalTesting.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Studio.Common.LocalTesting.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Studio.Common.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Studio.Common.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Studio.Common.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.TagsAndLayers.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.TagsAndLayers.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.TagsAndLayers.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Time.Interfaces" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Time.Interfaces.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Time.Interfaces.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Time.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Time.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Time.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Tweening.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Tweening.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Tweening.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.UIInteraction.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.UIInteraction.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.UIInteraction.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Unityextensions.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Unityextensions.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Unityextensions.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.UrlHandler.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.UrlHandler.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.UrlHandler.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Utf8json.Interfaces" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Utf8json.Interfaces.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Utf8json.Interfaces.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Utf8json.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Utf8json.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Utf8json.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="RecRoom.Versioning.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/RecRoom.Versioning.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\RecRoom.Versioning.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="SA.Foundation" Condition="Exists('$(GamePath)/BepInEx/interop/SA.Foundation.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\SA.Foundation.dll</HintPath>
+      </Reference>
+      <Reference Include="SA.Foundation.Network" Condition="Exists('$(GamePath)/BepInEx/interop/SA.Foundation.Network.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\SA.Foundation.Network.dll</HintPath>
+      </Reference>
+      <Reference Include="SA.iOS" Condition="Exists('$(GamePath)/BepInEx/interop/SA.iOS.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\SA.iOS.dll</HintPath>
+      </Reference>
+      <Reference Include="SA.iOS.XCode" Condition="Exists('$(GamePath)/BepInEx/interop/SA.iOS.XCode.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\SA.iOS.XCode.dll</HintPath>
+      </Reference>
+      <Reference Include="Singular" Condition="Exists('$(GamePath)/BepInEx/interop/Singular.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Singular.dll</HintPath>
+      </Reference>
+      <Reference Include="StansAssets.Foundation" Condition="Exists('$(GamePath)/BepInEx/interop/StansAssets.Foundation.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\StansAssets.Foundation.dll</HintPath>
+      </Reference>
+      <Reference Include="StansAssets.Plugins" Condition="Exists('$(GamePath)/BepInEx/interop/StansAssets.Plugins.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\StansAssets.Plugins.dll</HintPath>
+      </Reference>
+      <Reference Include="StatsigUnity.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/StatsigUnity.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\StatsigUnity.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="SteamVR" Condition="Exists('$(GamePath)/BepInEx/interop/SteamVR.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\SteamVR.dll</HintPath>
+      </Reference>
+      <Reference Include="SteamVR_Actions" Condition="Exists('$(GamePath)/BepInEx/interop/SteamVR_Actions.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\SteamVR_Actions.dll</HintPath>
+      </Reference>
+      <Reference Include="TextureTool.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/TextureTool.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\TextureTool.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="ToxMod" Condition="Exists('$(GamePath)/BepInEx/interop/ToxMod.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\ToxMod.dll</HintPath>
+      </Reference>
+      <Reference Include="UJect.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/UJect.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UJect.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="UJect.UnityExtensions" Condition="Exists('$(GamePath)/BepInEx/interop/UJect.UnityExtensions.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UJect.UnityExtensions.dll</HintPath>
+      </Reference>
+      <Reference Include="Unity.Addressables" Condition="Exists('$(GamePath)/BepInEx/interop/Unity.Addressables.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Unity.Addressables.dll</HintPath>
+      </Reference>
+      <Reference Include="Unity.Burst" Condition="Exists('$(GamePath)/BepInEx/interop/Unity.Burst.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Unity.Burst.dll</HintPath>
+      </Reference>
+      <Reference Include="Unity.Burst.Unsafe" Condition="Exists('$(GamePath)/BepInEx/interop/Unity.Burst.Unsafe.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Unity.Burst.Unsafe.dll</HintPath>
+      </Reference>
+      <Reference Include="Unity.Collections" Condition="Exists('$(GamePath)/BepInEx/interop/Unity.Collections.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Unity.Collections.dll</HintPath>
+      </Reference>
+      <Reference Include="Unity.Entities" Condition="Exists('$(GamePath)/BepInEx/interop/Unity.Entities.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Unity.Entities.dll</HintPath>
+      </Reference>
+      <Reference Include="Unity.InputSystem" Condition="Exists('$(GamePath)/BepInEx/interop/Unity.InputSystem.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Unity.InputSystem.dll</HintPath>
+      </Reference>
+      <Reference Include="Unity.Jobs" Condition="Exists('$(GamePath)/BepInEx/interop/Unity.Jobs.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Unity.Jobs.dll</HintPath>
+      </Reference>
+      <Reference Include="Unity.Localization" Condition="Exists('$(GamePath)/BepInEx/interop/Unity.Localization.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Unity.Localization.dll</HintPath>
+      </Reference>
+      <Reference Include="Unity.Mathematics" Condition="Exists('$(GamePath)/BepInEx/interop/Unity.Mathematics.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Unity.Mathematics.dll</HintPath>
+      </Reference>
+      <Reference Include="Unity.ProBuilder" Condition="Exists('$(GamePath)/BepInEx/interop/Unity.ProBuilder.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Unity.ProBuilder.dll</HintPath>
+      </Reference>
+      <Reference Include="Unity.Properties" Condition="Exists('$(GamePath)/BepInEx/interop/Unity.Properties.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Unity.Properties.dll</HintPath>
+      </Reference>
+      <Reference Include="Unity.RenderPipeline.Universal.ShaderLibrary" Condition="Exists('$(GamePath)/BepInEx/interop/Unity.RenderPipeline.Universal.ShaderLibrary.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Unity.RenderPipeline.Universal.ShaderLibrary.dll</HintPath>
+      </Reference>
+      <Reference Include="Unity.RenderPipelines.Core.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/Unity.RenderPipelines.Core.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Unity.RenderPipelines.Core.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="Unity.RenderPipelines.Universal.Runtime" Condition="Exists('$(GamePath)/BepInEx/interop/Unity.RenderPipelines.Universal.Runtime.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Unity.RenderPipelines.Universal.Runtime.dll</HintPath>
+      </Reference>
+      <Reference Include="Unity.ResourceManager" Condition="Exists('$(GamePath)/BepInEx/interop/Unity.ResourceManager.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Unity.ResourceManager.dll</HintPath>
+      </Reference>
+      <Reference Include="Unity.Serialization" Condition="Exists('$(GamePath)/BepInEx/interop/Unity.Serialization.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Unity.Serialization.dll</HintPath>
+      </Reference>
+      <Reference Include="Unity.TextMeshPro" Condition="Exists('$(GamePath)/BepInEx/interop/Unity.TextMeshPro.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Unity.TextMeshPro.dll</HintPath>
+      </Reference>
+      <Reference Include="Unity.XR.ARFoundation" Condition="Exists('$(GamePath)/BepInEx/interop/Unity.XR.ARFoundation.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Unity.XR.ARFoundation.dll</HintPath>
+      </Reference>
+      <Reference Include="Unity.XR.ARSubsystems" Condition="Exists('$(GamePath)/BepInEx/interop/Unity.XR.ARSubsystems.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Unity.XR.ARSubsystems.dll</HintPath>
+      </Reference>
+      <Reference Include="Unity.XR.Management" Condition="Exists('$(GamePath)/BepInEx/interop/Unity.XR.Management.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Unity.XR.Management.dll</HintPath>
+      </Reference>
+      <Reference Include="Unity.XR.Oculus" Condition="Exists('$(GamePath)/BepInEx/interop/Unity.XR.Oculus.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Unity.XR.Oculus.dll</HintPath>
+      </Reference>
+      <Reference Include="Unity.XR.OpenVR" Condition="Exists('$(GamePath)/BepInEx/interop/Unity.XR.OpenVR.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Unity.XR.OpenVR.dll</HintPath>
+      </Reference>
+      <Reference Include="Unity.XR.PSVR" Condition="Exists('$(GamePath)/BepInEx/interop/Unity.XR.PSVR.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Unity.XR.PSVR.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.AccessibilityModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.AccessibilityModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.AccessibilityModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.AIModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.AIModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.AIModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.AndroidJNIModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.AndroidJNIModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.AndroidJNIModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.AnimationModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.AnimationModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.AnimationModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.AssetBundleModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.AssetBundleModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.AssetBundleModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.AudioModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.AudioModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.AudioModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.ClothModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.ClothModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.ClothModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.ClusterInputModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.ClusterInputModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.ClusterInputModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.ClusterRendererModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.ClusterRendererModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.ClusterRendererModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.CoreModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.CoreModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.CoreModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.CrashReportingModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.CrashReportingModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.CrashReportingModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.DirectorModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.DirectorModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.DirectorModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.DSPGraphModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.DSPGraphModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.DSPGraphModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.GameCenterModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.GameCenterModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.GameCenterModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.GIModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.GIModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.GIModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.GridModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.GridModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.GridModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.HotReloadModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.HotReloadModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.HotReloadModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.ImageConversionModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.ImageConversionModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.ImageConversionModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.IMGUIModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.IMGUIModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.IMGUIModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.InputLegacyModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.InputLegacyModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.InputLegacyModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.InputModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.InputModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.InputModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.JSONSerializeModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.JSONSerializeModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.JSONSerializeModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.LocalizationModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.LocalizationModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.LocalizationModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.ParticleSystemModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.ParticleSystemModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.ParticleSystemModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.PerformanceReportingModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.PerformanceReportingModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.PerformanceReportingModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.Physics2DModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.Physics2DModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.Physics2DModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.PhysicsModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.PhysicsModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.PhysicsModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.ProfilerModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.ProfilerModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.ProfilerModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.RuntimeInitializeOnLoadManagerInitializerModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.RuntimeInitializeOnLoadManagerInitializerModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.RuntimeInitializeOnLoadManagerInitializerModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.ScreenCaptureModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.ScreenCaptureModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.ScreenCaptureModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.SharedInternalsModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.SharedInternalsModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.SharedInternalsModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.SpatialTracking" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.SpatialTracking.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.SpatialTracking.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.SpriteMaskModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.SpriteMaskModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.SpriteMaskModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.SpriteShapeModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.SpriteShapeModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.SpriteShapeModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.StreamingModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.StreamingModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.StreamingModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.SubstanceModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.SubstanceModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.SubstanceModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.SubsystemsModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.SubsystemsModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.SubsystemsModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.TerrainModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.TerrainModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.TerrainModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.TerrainPhysicsModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.TerrainPhysicsModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.TerrainPhysicsModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.TextCoreModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.TextCoreModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.TextCoreModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.TextRenderingModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.TextRenderingModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.TextRenderingModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.TilemapModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.TilemapModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.TilemapModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.TLSModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.TLSModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.TLSModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.UI" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.UI.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.UI.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.UIElementsModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.UIElementsModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.UIElementsModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.UIElementsNativeModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.UIElementsNativeModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.UIElementsNativeModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.UIModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.UIModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.UIModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.UmbraModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.UmbraModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.UmbraModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.UNETModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.UNETModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.UNETModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.UnityAnalyticsModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.UnityAnalyticsModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.UnityAnalyticsModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.UnityConnectModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.UnityConnectModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.UnityConnectModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.UnityCurlModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.UnityCurlModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.UnityCurlModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.UnityTestProtocolModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.UnityTestProtocolModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.UnityTestProtocolModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.UnityWebRequestAssetBundleModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.UnityWebRequestAssetBundleModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.UnityWebRequestAssetBundleModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.UnityWebRequestAudioModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.UnityWebRequestAudioModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.UnityWebRequestAudioModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.UnityWebRequestModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.UnityWebRequestModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.UnityWebRequestModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.UnityWebRequestTextureModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.UnityWebRequestTextureModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.UnityWebRequestTextureModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.UnityWebRequestWWWModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.UnityWebRequestWWWModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.UnityWebRequestWWWModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.VehiclesModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.VehiclesModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.VehiclesModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.VFXModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.VFXModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.VFXModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.VideoModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.VideoModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.VideoModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.VirtualTexturingModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.VirtualTexturingModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.VirtualTexturingModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.VRModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.VRModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.VRModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.WindModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.WindModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.WindModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.XRModule" Condition="Exists('$(GamePath)/BepInEx/interop/UnityEngine.XRModule.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\UnityEngine.XRModule.dll</HintPath>
+      </Reference>
+      <Reference Include="Valve.Newtonsoft.Json" Condition="Exists('$(GamePath)/BepInEx/interop/Valve.Newtonsoft.Json.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\Valve.Newtonsoft.Json.dll</HintPath>
+      </Reference>
+      <Reference Include="XboxUWP" Condition="Exists('$(GamePath)/BepInEx/interop/XboxUWP.dll')">
+        <HintPath>$(GamePath)\BepInEx\interop\XboxUWP.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+
+</Project>
