@@ -9,6 +9,6 @@ if (args.Length != 1)
 try { return InteropVerifier.Run(args[0]); }
 catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException)
 {
-    Console.Error.WriteLine($"KRBUILD_METADATA_READ type={error.GetType().Name}; check local reference access.");
+    Console.WriteLine($"KRBUILD_METADATA_READ type={error.GetType().Name}; check local reference access.");
     return 3;
 }

@@ -59,7 +59,6 @@ public class Plugin : BasePlugin
             if (Debug.Value)
                 Log.LogInfo("BestHTTP integration hook installed.");
             Log.LogInfo("Required Harmony hook installation completed. Native authentication remains guarded.");
-            SceneManager.sceneLoaded += (Action<Scene, LoadSceneMode>)OnSceneLoaded;
         }
         catch (Exception error)
         {
@@ -67,6 +66,9 @@ public class Plugin : BasePlugin
             Log.LogError($"20230414 integration could not bind ({error.GetType().Name}). Check the build and regenerate interop.");
             return;
         }
+
+        if (Debug.Value || DisableTelemetry.Value)
+            Patches.NativeDiagnostics.Subscribe(typeof(SceneManager), "sceneLoaded", (Action<Scene, LoadSceneMode>)OnSceneLoaded);
 
         if (DisableTelemetry.Value)
         {

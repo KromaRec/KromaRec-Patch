@@ -54,6 +54,7 @@ jobs:
         shell: pwsh
         run: |
           $core = Join-Path $env:RUNNER_TEMP 'kromarec-loader/BepInEx/core'
+          ./tests/DepotIdentity.ps1
           ./tests/BuildReadiness.ps1 -LoaderPath $core
       - name: Upload standalone diagnostic
         uses: actions/upload-artifact@v4

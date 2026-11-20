@@ -1,0 +1,57 @@
+﻿Discovered future Photon settings factory: True
+PASS BestHTTP.SendRequestImpl
+PASS BestHTTP.HTTPRequest.MaxRedirects
+PASS BestHTTP.HTTPRequest.DisableCache
+PASS BestHTTP.HTTPRequest.Uri
+PASS BestHTTP.HTTPRequest.Callback
+PASS BestHTTP.OnRequestFinishedDelegate.Invoke
+OPTIONAL UnityEngine.SceneManagement.SceneManager.sceneLoaded event=False owners=1 add_methods=1 event_rows=0 fields=0 properties=1
+OPTIONAL UnityEngine.Application.logMessageReceived event=False owners=1 add_methods=1 event_rows=0 fields=0 properties=0
+PEER_CANDIDATE GICDPFOMCGN
+AUTH_CANDIDATE System.Boolean GICDPFOMCGN::IGAAMJJJFKB(System.String,System.String,LCBFGLBDFHG,System.String,System.Boolean)
+AUTH_CANDIDATE System.Boolean GICDPFOMCGN::CADOCIIEJAD(System.String,System.String,LCBFGLBDFHG,System.String,PPHMFCHPECA,ExitGames.Client.Photon.ConnectionProtocol)
+AUTH_METHOD System.Boolean GICDPFOMCGN::IGAAMJJJFKB(System.String,System.String,LCBFGLBDFHG,System.String,System.Boolean) static=False abstract=False
+AUTH_METHOD System.Boolean GICDPFOMCGN::CADOCIIEJAD(System.String,System.String,LCBFGLBDFHG,System.String,PPHMFCHPECA,ExitGames.Client.Photon.ConnectionProtocol) static=False abstract=False
+PASS Photon peer
+PASS 20230414 Photon Authenticate signature
+PASS 20230414 Photon AuthenticateOnce signature
+PhotonRealtime SHA256=2E6A8754C61D6E14B3F00346B5AEB1E70A0C50D56AB474C05EA1DA59AD09453E
+PASS Photon auth object type
+PASS Photon encryption enum
+PASS Photon protocol enum
+AUTH_TYPE LCBFGLBDFHG base=Il2CppSystem.Object
+AUTH_CONSTRUCTOR System.Void LCBFGLBDFHG::.ctor()
+AUTH_CONSTRUCTOR System.Void LCBFGLBDFHG::.ctor(System.String)
+AUTH_CONSTRUCTOR System.Void LCBFGLBDFHG::.ctor(System.IntPtr)
+AUTH_PROPERTY DIDPLGKMDIO type=NHHIICOMNDO getter_fields=[NativeFieldInfoPtr_DIDPLGKMDIO] setter_fields=[NativeFieldInfoPtr_DIDPLGKMDIO]
+AUTH_ENUM NHHIICOMNDO Custom=0
+AUTH_ENUM NHHIICOMNDO Steam=1
+AUTH_ENUM NHHIICOMNDO Facebook=2
+AUTH_ENUM NHHIICOMNDO Oculus=3
+AUTH_ENUM NHHIICOMNDO PlayStation=4
+AUTH_ENUM NHHIICOMNDO Xbox=5
+AUTH_ENUM NHHIICOMNDO Viveport=10
+AUTH_ENUM NHHIICOMNDO NintendoSwitch=11
+AUTH_ENUM NHHIICOMNDO None=255
+AUTH_PROPERTY _MPGGEFPDICH_k__BackingField type=System.String getter_fields=[NativeFieldInfoPtr__MPGGEFPDICH_k__BackingField] setter_fields=[NativeFieldInfoPtr__MPGGEFPDICH_k__BackingField]
+AUTH_PROPERTY _FIGKNJKMCLG_k__BackingField type=Il2CppSystem.Object getter_fields=[NativeFieldInfoPtr__FIGKNJKMCLG_k__BackingField] setter_fields=[NativeFieldInfoPtr__FIGKNJKMCLG_k__BackingField]
+AUTH_PROPERTY _LGKMOEHCOOP_k__BackingField type=System.String getter_fields=[NativeFieldInfoPtr__LGKMOEHCOOP_k__BackingField] setter_fields=[NativeFieldInfoPtr__LGKMOEHCOOP_k__BackingField]
+AUTH_PROPERTY _JEHPFMLLKBE_k__BackingField type=System.String getter_fields=[NativeFieldInfoPtr__JEHPFMLLKBE_k__BackingField] setter_fields=[NativeFieldInfoPtr__JEHPFMLLKBE_k__BackingField]
+AUTH_PROPERTY MBDLFKMIGJE type=NHHIICOMNDO getter_fields=[] setter_fields=[]
+AUTH_ENUM NHHIICOMNDO Custom=0
+AUTH_ENUM NHHIICOMNDO Steam=1
+AUTH_ENUM NHHIICOMNDO Facebook=2
+AUTH_ENUM NHHIICOMNDO Oculus=3
+AUTH_ENUM NHHIICOMNDO PlayStation=4
+AUTH_ENUM NHHIICOMNDO Xbox=5
+AUTH_ENUM NHHIICOMNDO Viveport=10
+AUTH_ENUM NHHIICOMNDO NintendoSwitch=11
+AUTH_ENUM NHHIICOMNDO None=255
+AUTH_PROPERTY MIKEGCFPBAP type=Il2CppSystem.Object getter_fields=[] setter_fields=[]
+AUTH_PROPERTY EKJCBGGAFCG type=System.String getter_fields=[] setter_fields=[]
+AUTH_PROPERTY BAADEALBCAN type=System.String getter_fields=[] setter_fields=[]
+HARMONY_TARGET regular=True once=True
+NATIVE_ROLES=UNVERIFIED ENCRYPTION=UNVERIFIED HANDOFF=UNVERIFIED
+Authentication member semantics require native evidence. KromaRec Photon auth is gated.
+Interop metadata check only. Confirm Harmony binding and callback execution in the game.
+KRBUILD_METADATA=PASS scope=managed-signatures-only

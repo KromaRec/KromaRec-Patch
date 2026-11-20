@@ -98,6 +98,9 @@ try
     }
     Check(Run() == 0 && report.Contains("PHOTON_CONSTANT Photon.Realtime.OperationCode.Authenticate=230") &&
         report.Contains("AUTH_FIELD syntheticAuth") && report.Contains("AUTH_ENUM SyntheticCustomAuth Custom=0") && report.Contains("NATIVE_ROLES=UNVERIFIED"), "valid synthetic signatures and evidence boundaries");
+    manager.Events.Clear();
+    Check(Run() == 0 && report.Contains("sceneLoaded event=False owners=1 add_methods=1") &&
+        report.Contains("logMessageReceived event=False owners=0"), "accessor-only and absent optional callbacks");
     var wrongOverload = Method(peer, "IGAAMJJJFKB", module.TypeSystem.Boolean, false, module.TypeSystem.String);
     Check(Run() == 0 && report.Contains("IGAAMJJJFKB(System.String)"), "report additional overload without confusing the target");
     peer.Methods.Remove(wrongOverload);
@@ -112,7 +115,10 @@ try
     peer.Name = "GICDPFOMCGN";
     var getter = request.Properties.First(p => p.Name == "Uri").GetMethod;
     getter.IsStatic = true;
-    Check(Run() == 3, "reject static request accessor");
+    regular.IsStatic = true;
+    Check(Run() == 3 && report.Contains("REQUIRED_FAILURE BestHTTP.HTTPRequest.Uri") &&
+        report.Contains("REQUIRED_FAILURE 20230414 Photon Authenticate signature"), "report independent required failures");
+    regular.IsStatic = false;
     getter.IsStatic = false;
     Check(Run() == 0, "recover after invalid metadata");
     File.WriteAllText(Path.Combine(interop, "broken.dll"), "not metadata");

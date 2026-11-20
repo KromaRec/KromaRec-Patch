@@ -14,7 +14,7 @@ internal static class InteropVerifier
         var interop = Path.Combine(game, "BepInEx", "interop");
         if (!Directory.Exists(interop))
         {
-            Console.Error.WriteLine("Missing BepInEx/interop. Launch the game with the pinned loader first.");
+            Console.WriteLine("KRBUILD_METADATA_INPUT Missing BepInEx/interop. Launch the game with the pinned loader first.");
             return 2;
         }
         var assemblies = new List<AssemblyDefinition>();
@@ -30,10 +30,11 @@ internal static class InteropVerifier
                 }
             }
             var types = assemblies.SelectMany(assembly => Flatten(assembly.MainModule.Types)).ToLookup(type => type.FullName);
-            bool Require(bool condition, string member)
+            var failures = new List<string>();
+            void Require(bool condition, string member)
             {
                 Console.WriteLine($"{(condition ? "PASS" : "MISSING")} {member}");
-                return condition;
+                if (!condition) failures.Add(member);
             }
 
             bool Method(string type, string name, string returns, bool? isStatic, params string[] parameters) =>
@@ -53,16 +54,24 @@ internal static class InteropVerifier
                 types[type].SelectMany(t => t.Events).Any(e => e.Name == name && e.AddMethod?.IsPublic == true && e.AddMethod.IsStatic);
 
             Console.WriteLine($"Discovered future Photon settings factory: {Method("HPEENKELKDJ", "MGKINLFMJLB", "Photon.Realtime.AppSettings", false)}");
-            var valid = Require(Method("BestHTTP.HTTPManager", "SendRequestImpl", null, true, "BestHTTP.HTTPRequest"),
-                            "BestHTTP SendRequestImpl") &
-                        Require(WritableMember("BestHTTP.HTTPRequest", "MaxRedirects", "System.Int32") &&
-                                WritableMember("BestHTTP.HTTPRequest", "DisableCache", "System.Boolean") &&
-                                WritableMember("BestHTTP.HTTPRequest", "Uri", "Il2CppSystem.Uri") &&
-                                WritableMember("BestHTTP.HTTPRequest", "Callback", "BestHTTP.OnRequestFinishedDelegate"),
-                            "BestHTTP per-request settings and callback") &
-                        Require(Method("BestHTTP.OnRequestFinishedDelegate", "Invoke", "System.Void", false,
-                                "BestHTTP.HTTPRequest", "BestHTTP.HTTPResponse"), "BestHTTP completion delegate") &
-                        Require(Event("UnityEngine.SceneManagement.SceneManager", "sceneLoaded"), "Unity scene-load event");
+            Require(Method("BestHTTP.HTTPManager", "SendRequestImpl", null, true, "BestHTTP.HTTPRequest"), "BestHTTP.SendRequestImpl");
+            foreach (var (member, type) in new[] { ("MaxRedirects", "System.Int32"), ("DisableCache", "System.Boolean"),
+                         ("Uri", "Il2CppSystem.Uri"), ("Callback", "BestHTTP.OnRequestFinishedDelegate") })
+                Require(WritableMember("BestHTTP.HTTPRequest", member, type), "BestHTTP.HTTPRequest." + member);
+            Require(Method("BestHTTP.OnRequestFinishedDelegate", "Invoke", "System.Void", false,
+                "BestHTTP.HTTPRequest", "BestHTTP.HTTPResponse"), "BestHTTP.OnRequestFinishedDelegate.Invoke");
+
+            void DescribeOptionalEvent(string owner, string name)
+            {
+                var owners = types[owner].ToArray();
+                Console.WriteLine($"OPTIONAL {owner}.{name} event={Event(owner, name)} owners={owners.Length} " +
+                    $"add_methods={owners.SelectMany(t => t.Methods).Count(m => m.Name == "add_" + name)} " +
+                    $"event_rows={owners.SelectMany(t => t.Events).Count(e => e.Name == name)} " +
+                    $"fields={owners.SelectMany(t => t.Fields).Count(f => f.Name == name)} " +
+                    $"properties={owners.SelectMany(t => t.Properties).Count(p => p.Name == name)}");
+            }
+            DescribeOptionalEvent("UnityEngine.SceneManagement.SceneManager", "sceneLoaded");
+            DescribeOptionalEvent("UnityEngine.Application", "logMessageReceived");
 
             foreach (var candidate in types.SelectMany(group => group).Where(type =>
                          type.Module.Assembly.Name.Name == "PhotonRealtime" && type.BaseType?.FullName == PhotonBindings.BasePeerName))
@@ -91,8 +100,9 @@ internal static class InteropVerifier
                 PhotonBindings.AuthName, "System.String", "System.Boolean");
             var once = AuthMethod(PhotonBindings.OnceName, "System.String", "System.String",
                 PhotonBindings.AuthName, "System.String", PhotonBindings.EncryptionModeName, PhotonBindings.ProtocolName);
-            valid &= Require(peers.Length == 1 && regular, "20230414 Photon Authenticate signature");
-            valid &= Require(peers.Length == 1 && once, "20230414 Photon AuthenticateOnce signature");
+            Require(peers.Length == 1, "Photon peer");
+            Require(regular, "20230414 Photon Authenticate signature");
+            Require(once, "20230414 Photon AuthenticateOnce signature");
             var realtimePath = Path.Combine(interop, "PhotonRealtime.dll");
             if (File.Exists(realtimePath))
             {
@@ -103,9 +113,10 @@ internal static class InteropVerifier
 
             var authTypes = types[PhotonBindings.AuthName].Where(t => t.Module.Assembly.Name.Name == "PhotonRealtime" &&
                 t.IsClass && !t.IsEnum).ToArray();
-            valid &= Require(authTypes.Length == 1 && types[PhotonBindings.EncryptionModeName].Count(t =>
-                             t.Module.Assembly.Name.Name == "PhotonRealtime" && t.IsEnum) == 1 &&
-                             types[PhotonBindings.ProtocolName].Any(t => t.IsEnum), "20230414 Photon signature types");
+            Require(authTypes.Length == 1, "Photon auth object type");
+            Require(types[PhotonBindings.EncryptionModeName].Count(t =>
+                             t.Module.Assembly.Name.Name == "PhotonRealtime" && t.IsEnum) == 1, "Photon encryption enum");
+            Require(types[PhotonBindings.ProtocolName].Any(t => t.IsEnum), "Photon protocol enum");
             string WrapperFields(MethodDefinition accessor) => accessor.HasBody
                 ? string.Join(",", accessor.Body.Instructions
                     .Where(instruction => instruction.OpCode == OpCodes.Ldsfld &&
@@ -144,7 +155,8 @@ internal static class InteropVerifier
             Console.WriteLine($"HARMONY_TARGET regular={regular && peers.Length == 1} once={once && peers.Length == 1}");
             Console.WriteLine("NATIVE_ROLES=UNVERIFIED ENCRYPTION=UNVERIFIED HANDOFF=UNVERIFIED");
             Console.WriteLine("Authentication member semantics require native evidence. KromaRec Photon auth is gated.");
-            Console.WriteLine($"Optional Unity diagnostics: log callback={Event("UnityEngine.Application", "logMessageReceived")}");
+            foreach (var failure in failures) Console.WriteLine($"REQUIRED_FAILURE {failure}");
+            var valid = failures.Count == 0;
             Console.WriteLine("Interop metadata check only. Confirm Harmony binding and callback execution in the game.");
             Console.WriteLine($"KRBUILD_METADATA={(valid ? "PASS" : "FAIL")} scope=managed-signatures-only");
             return valid ? 0 : 3;

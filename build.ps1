@@ -5,6 +5,7 @@ param(
     [switch]$ProbeOnly,
     [switch]$ReferencesOnly,
     [switch]$Install,
+    [string]$ManifestPath,
     [string]$ReportPath
 )
 $ErrorActionPreference = 'Stop'
@@ -18,6 +19,11 @@ if (!(Test-Path -LiteralPath $GamePath -PathType Container)) {
     throw 'KRBUILD_GAME: GamePath directory is missing. Set -GamePath to the 20230414 installation.'
 }
 $game = (Resolve-Path -LiteralPath $GamePath).Path
+if ($ManifestPath) {
+    $identity = & (Join-Path $PSScriptRoot 'scripts/Test-DepotIdentity.ps1') -GamePath $game -ManifestPath $ManifestPath
+    if ($identity -ne 'DEPOT_CORE_FILES_MATCH') { throw "KRBUILD_GAME_ID: $identity. Check the installation and the Steam manifest export." }
+    Write-Output "GAME_BUILD_ID=$identity"
+}
 $loader = Join-Path $game 'BepInEx/core'
 $interop = Join-Path $game 'BepInEx/interop'
 
@@ -78,7 +84,7 @@ try {
     }
     $report | Write-Output
     if ($metadataExit -ne 0) {
-        throw 'KRBUILD_METADATA: Metadata is missing, unreadable or incompatible. Send the sanitized checker report.'
+        throw 'KRBUILD_METADATA: Inspect each REQUIRED_FAILURE or KRBUILD_METADATA_READ in the report. OPTIONAL entries and UNVERIFIED runtime roles do not fail verification.'
     }
     if ($VerifyOnly) { return }
 

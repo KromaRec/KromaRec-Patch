@@ -1,9 +1,10 @@
 [CmdletBinding()]
-param([Parameter(Mandatory)][string]$GamePath, [string]$ConfigPath,
+param([Parameter(Mandatory)][string]$GamePath, [string]$ConfigPath, [string]$ManifestPath,
       [ValidatePattern('^[A-Fa-f0-9]{64}$')][string]$KnownGameAssemblySha256)
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $GamePath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($GamePath)
+if ($ManifestPath) { $ManifestPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($ManifestPath) }
 if ($ConfigPath) { $ConfigPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($ConfigPath) }
 $core = Join-Path $GamePath 'BepInEx/core'
 if (!$ConfigPath) { $ConfigPath = Join-Path $GamePath 'BepInEx/config/net.kromarec.patch.cfg' }
@@ -27,6 +28,9 @@ try {
     $identity = 'UNVERIFIED'
     if ($game -and $KnownGameAssemblySha256) {
         $identity = if ($hash -eq $KnownGameAssemblySha256) { 'REFERENCE_HASH_MATCH' } else { 'MISMATCH' }
+    }
+    if ($ManifestPath -and $identity -ne 'MISMATCH') {
+        $identity = & (Join-Path $PSScriptRoot 'Test-DepotIdentity.ps1') -GamePath $GamePath -ManifestPath $ManifestPath
     }
     "GAME_BUILD_ID=$identity"
 
@@ -59,7 +63,7 @@ try {
         }
     }
     "METADATA=$metadata CONFIG_SYNTAX=$config"
-    if ($metadata -eq 'PASS' -and $identity -ne 'MISMATCH') { 'MAIN_BUILD=READY_TO_ATTEMPT' } else { 'MAIN_BUILD=BLOCKED' }
+    if ($metadata -eq 'PASS' -and $identity -in @('UNVERIFIED','REFERENCE_HASH_MATCH','DEPOT_CORE_FILES_MATCH')) { 'MAIN_BUILD=READY_TO_ATTEMPT' } else { 'MAIN_BUILD=BLOCKED' }
     'NATIVE_AUTH=BLOCKED'
     $log = @('LogOutput.log','LogOutput.txt') | ForEach-Object {
         Get-Item -LiteralPath (Join-Path $GamePath "BepInEx/$_") -ErrorAction SilentlyContinue

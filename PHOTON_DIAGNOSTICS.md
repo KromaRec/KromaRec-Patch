@@ -4,6 +4,14 @@ For the first Windows report run the commands in NEXT_STEPS.md. The readiness sc
 
 Use the exact Rec Room PC 20230414 depot and BepInEx 6.0.0-pre.2 IL2CPP. Start the game once to generate interop and close it. Run from your existing KromaRec-Patch directory.
 
+## Windows metadata failure on 2026-11-18
+
+Both supplied runs reported the BestHTTP and Photon signatures present. The old verifier required a CLR event named sceneLoaded with a public static add accessor on UnityEngine.SceneManagement.SceneManager. Its absence alone set the aggregate to FAIL (exit 3). Application.logMessageReceived was also unavailable and already optional. The report does not identify whether generation dropped an event row, omitted the accessor or exposed a different member.
+
+REQUIRED_FAILURE names each missing or incompatible mandatory member. OPTIONAL reports owner count, event rows, add methods, fields and properties with the exact name. A standalone accessor or delegate field does not authorize a replacement hook. The plugin attempts each optional subscription once during startup if used. A missing scene event removes the scene notification and per-scene telemetry retries. Startup telemetry opt-out and required BestHTTP and Photon guards still run. A missing Unity log callback removes the optional scene-error log observer. No scene transitions depend on either subscription.
+
+The independent runtime statuses for authentication roles, encryption and handoff remain UNVERIFIED even when all required metadata matches.
+
 ## Offline report
 
 ~~~powershell

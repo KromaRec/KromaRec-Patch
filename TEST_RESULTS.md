@@ -1,5 +1,13 @@
 # Verification
 
+## Windows metadata correction, 2026-11-18
+
+The supplied Windows report showed two verifier failures before compilation. The only required line marked MISSING was the Unity scene-load event. Both Photon method signatures and signature types passed. The optional Unity log event was also absent. No native code or managed plugin was loaded by that check.
+
+The corrected verifier accepts a synthetic proxy with a standalone scene add accessor and no event row. It reports independent BestHTTP and Photon failures together and rejects corrupt metadata. The authorized depot-record fixtures cover matching files, incorrect manifest ID, missing and duplicate entries, and a same-size binary mismatch. The readiness and managed regression suites run independently of Windows. A fresh run with the genuine references is still needed to determine the main compiler result. No authentication guard was removed.
+
+This correction was tested with SDK 6.0.428. ProtocolChecks, MetadataChecks, the pinned BepInEx config parser, BuildReadiness, DepotIdentity and PowerShell syntax (8 scripts) passed. VerifyInterop and PhotonAuthProbe each built with zero warnings and zero errors. In a separate managed fixture the revised NativeDiagnostics compiled against the pinned Il2CppInterop runtime, dispatched a CLR event and handled an absent log event. IL2CPP delegate dispatch remains untested. Both 0.10.1 backend wire regressions passed (24 encrypted Authenticate and one AuthenticateOnce per backend). The main project again stopped at KRBUILD_INTEROP in the remote workspace; the revised native build on the Windows installation has not been run.
+
 ## Final build preparation against KromaRec 0.10.1
 
 | Check executed on Linux | Result | Evidence |
