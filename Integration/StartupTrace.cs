@@ -16,6 +16,16 @@ internal sealed record StartupTrace(Uri Api, Uri Auth, Uri Accounts, Uri Rooms, 
             var root = json.RootElement;
             if (root.ValueKind != JsonValueKind.Object)
                 return null;
+            // Backend 0.10.3 assigns a distinct HTTPS authority to every service.
+            var origins = new System.Collections.Generic.HashSet<Uri> { settings.Discovery };
+            var labels = new System.Collections.Generic.HashSet<string>(StringComparer.Ordinal);
+            foreach (var entry in root.EnumerateObject())
+            {
+                if (!labels.Add(entry.Name) || entry.Value.ValueKind != JsonValueKind.String ||
+                    !ClientSettings.TryParseOrigin(entry.Value.GetString(), out var origin) ||
+                    !origins.Add(origin))
+                    return null;
+            }
             var match = Origin(root, "Matchmaking");
             if (match == null || !settings.IsMatchOrigin(match))
             {

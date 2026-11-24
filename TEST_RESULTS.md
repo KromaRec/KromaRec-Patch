@@ -1,5 +1,9 @@
 # Verification
 
+## Windows discovery, 2026-11-21
+
+User-supplied Windows logs confirm plugin compilation, installation and native callback execution. The request observer installed. During discovery for ns.rec.test, the time verifier returned true, the request verifier returned false and BestHTTP delivered TlsFatalAlert to the request callback before an HTTP response. No 102 or 103 report appeared in the supplied trace. The precise rejection criterion remains unknown. A separate Alpine OpenSSL check validated the served chain and hostname using the configured Caddy root at the supplied Windows timestamp. Native discovery failed. Login, encrypted Photon admission and gameplay remain blocked on this path.
+
 ## Windows metadata correction, 2026-11-18
 
 The supplied Windows report showed two verifier failures before compilation. The only required line marked MISSING was the Unity scene-load event. Both Photon method signatures and signature types passed. The optional Unity log event was also absent. No native code or managed plugin was loaded by that check.

@@ -66,6 +66,7 @@ internal static class SendRequestPatch
         {
             Plugin.Log.LogWarning($"TLS time observer unavailable ({error.GetType().Name}).");
         }
+
         try
         {
             var target = AccessTools.DeclaredMethod(typeof(EKAKCHPEMEJ).Assembly.GetType("EKAKCHPEMEJ+LJBCIDKNONH", true), "IsValid",
@@ -79,6 +80,7 @@ internal static class SendRequestPatch
         {
             Plugin.Log.LogWarning($"TLS request observer unavailable ({error.GetType().Name}).");
         }
+
         try
         {
             var target = AccessTools.DeclaredMethod(typeof(EKAKCHPEMEJ), "MEEELJJBJIP",

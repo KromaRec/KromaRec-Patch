@@ -8,7 +8,7 @@ using BepInEx.Unity.IL2CPP;
 
 namespace RecNetPlugin;
 
-[BepInPlugin("net.kromarec.photon-auth-probe", "KromaRec Photon Auth Probe", "1.2.0")]
+[BepInPlugin("net.kromarec.photon-auth-probe", "KromaRec Photon Auth Probe", "1.3.0")]
 public sealed class PhotonAuthProbe : BasePlugin
 {
     private const string User = "kr_probe_user";
@@ -25,6 +25,7 @@ public sealed class PhotonAuthProbe : BasePlugin
     public override void Load()
     {
         Report("BEGIN");
+        Report("VERSION=1.3.0");
         try
         {
             var assembly = Assembly.Load("PhotonRealtime");
@@ -40,6 +41,7 @@ public sealed class PhotonAuthProbe : BasePlugin
                 return;
             }
 
+            ProbeReadback.Run(auth, constructor, Report);
             var baseline = NewSample(constructor).ToString() ?? string.Empty;
             var strings = auth.GetProperties(Members)
                 .Where(property => Writable(property) && property.PropertyType == typeof(string))

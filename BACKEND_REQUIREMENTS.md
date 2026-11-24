@@ -1,3 +1,5 @@
+Current contract: see the 0.10.3 integration report in the client project. The following is historical.
+
 # KromaRec Phase 2 backend requirements
 
 The baseline is the KromaRec **0.7.0** source and its patched **Luxon 1.5**, upstream server commit `e4bab98d8d6b3aee9ecf4035309a78a59b584f93`. Target PC game build **20230414** is Steam app **471710**, depot **471711**, manifest **6426603215211043630**. Phase 1 targets the existing contract. Phase 2 should reproduce the contract before expanding it.

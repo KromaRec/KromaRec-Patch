@@ -5,7 +5,7 @@ First complete [PHOTON_DIAGNOSTICS.md](PHOTON_DIAGNOSTICS.md). The preview suppo
 Use two Windows x64 systems or isolated Windows installations. Prepare a writable copy of Rec Room Steam app `471710`, depot `471711`, manifest `6426603215211043630` on each. Use two distinct KromaRec accounts. Prepare one additional local account for the private-room denial test if both of the first two accounts already have access.
 
 1. Set up KromaRec 0.9.0 and its bundled patched Luxon 1.5. Preserve Host when forwarding HTTPS to Rust and pass WebSocket upgrades through the notify origin. Make the HTTPS names resolve on both clients and trust the proxy certificate chain in Windows. Set client-reachable Luxon addresses for UDP 5058/5055/5056. Keep gate address/key shared by Rust and Luxon on loopback.
-2. From each Windows machine run the 0.9 release preflight with Python 3. Replace both HTTPS origins with your deployment. For a private CA, append `--ca C:\KR\trusted-root.pem` to this check and install the CA in Windows separately for the game.
+2. From each Windows machine run the backend release preflight with Python 3 from the extracted KromaRec server directory. Replace both HTTPS origins with your deployment. For a private CA, append `--ca C:\KR\trusted-root.pem` to configure trust for this Python check. In the 2026-11-21 native run, the request verifier rejected discovery with the local Caddy CA installed in Windows and the time check passing. Native acceptance requires a successful discovery response from the game.
    ```powershell
    py -3 .\tools\https_preflight.py https://ns.rec.test --match-url https://match.rec.test
    ```

@@ -5,6 +5,11 @@ using RecNetPlugin;
 
 const string App = "7a6eafd9-8a49-47bd-98da-c743525a3e72";
 const long Now = 1700000000;
+if (args.Length == 2 && args[0] == "--disposable-loopback-port")
+{
+    await Backend103Check.Run(int.Parse(args[1]));
+    return;
+}
 var settings = ClientSettings.Parse("https://ns.rec.test:8443", "https://match.rec.test",
     "127.0.0.1", 5058, "us", App);
 
@@ -83,6 +88,10 @@ var discovery = JsonSerializer.Serialize(new
     Matchmaking = "https://MATCH.rec.test:443/", Rooms = "https://rooms.rec.test", CDN = "https://cdn.rec.test",
     Notifications = "https://notify.rec.test", PlayerSettings = "https://playersettings.rec.test"
 });
+Check(StartupTrace.Read(discovery.Replace("https://auth.rec.test", "https://API.rec.test:443/"), settings, out _) == null,
+    "reject shared OAuth and API authority");
+Check(StartupTrace.Read(discovery.Replace("https://cdn.rec.test", settings.Discovery.AbsoluteUri), settings, out _) == null,
+    "reject service collision with discovery");
 var trace = StartupTrace.Read(discovery, settings, out var outcome);
 Check(trace != null && outcome == "service origins accepted", "discovery map and normalized MatchUrl");
 Check(trace.Label(new Uri("https://api.rec.test/api/versioncheck/v4?v=20230414&marker=secret"), get: true, post: false) == "version" &&

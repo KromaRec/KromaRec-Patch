@@ -4,6 +4,19 @@ For the first Windows report run the commands in NEXT_STEPS.md. The readiness sc
 
 Use the exact Rec Room PC 20230414 depot and BepInEx 6.0.0-pre.2 IL2CPP. Start the game once to generate interop and close it. Run from your existing KromaRec-Patch directory.
 
+## Windows probe 1.3.0 readback, 2026-11-19
+
+The runtime probe completed against PhotonRealtime SHA-256 `2E6A8754C61D6E14B3F00346B5AEB1E70A0C50D56AB474C05EA1DA59AD09453E`. The following observations apply to fresh synthetic authentication objects.
+
+| Property | Corresponding member | Observation |
+| --- | --- | --- |
+| BAADEALBCAN | _JEHPFMLLKBE_k__BackingField | Both readers tracked both constructor arguments. Writes tracked in both directions. Candidate UserId. |
+| EKJCBGGAFCG | _LGKMOEHCOOP_k__BackingField | Writes tracked in both directions. Neither reader tracked the constructor argument. |
+| DHECLPBPMEI | _MPGGEFPDICH_k__BackingField | The getter tracked both writes to the backing member. Reverse direction was not tested. |
+| MBDLFKMIGJE | DIDPLGKMDIO | Both readers tracked writes in both directions for None and Custom. |
+
+The label probes remained inconclusive. The readback does not identify the source of parameter 216 or 221, or verify native serialization to 217 or 225. No KromaRec ticket was sent. Keep native auth guarded. Next inspect the declared methods and accessor visibility on LCBFGLBDFHG, then correlate a supported parameter-building operation or native serialization with the observed members. Never infer the ticket slot from setter visibility alone.
+
 ## Windows metadata failure on 2026-11-18
 
 Both supplied runs reported the BestHTTP and Photon signatures present. The old verifier required a CLR event named sceneLoaded with a public static add accessor on UnityEngine.SceneManagement.SceneManager. Its absence alone set the aggregate to FAIL (exit 3). Application.logMessageReceived was also unavailable and already optional. The report does not identify whether generation dropped an event row, omitted the accessor or exposed a different member.

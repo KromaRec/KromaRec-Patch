@@ -1,0 +1,18 @@
+# TASKS
+
+- [ ] Preguntar a ChatGPT para utilizar Steamless C:\Users\kiram\Downloads\Steamless.v3.1.0.5.-.by.atom0s
+- [ ] Mejorar la GUI del Launcher de KromaRec y que venga el Client con el Launcher junto
+- [ ] Hacer copia de seguridad de `server.env` y de la base de datos de KromaRec antes de tocar nada.
+- [ ] Comprobar la versión actual de KromaRec con `./bin/kromarec --version` o revisando `CHANGELOG.md`.
+- [ ] Comparar la respuesta de `https://discovery.recflare.net/` y `https://discovery.rec.test/` desde el PC de pruebas.
+- [ ] Actualizar KromaRec a la última release estable del repositorio oficial, conservando `server.env` y la base de datos.
+- [ ] Ejecutar migraciones solo si la documentación o el changelog lo indican.
+- [ ] Arrancar KromaRec con `server.env` cargado y dejar `tail -f kromarec.log` abierto.
+- [ ] Abrir Rec Room y capturar el error exacto del juego y las líneas nuevas del log.
+- [ ] Probar varios subdominios `*.rec.test`; hay varios que devuelven `{"success":false,"error":{"message":"not found"}}`.
+- [ ] Identificar qué endpoints devuelve correctamente `discovery.recflare.net` pero no la instancia local de KromaRec.
+- [ ] Si siguen apareciendo `404 not found`, buscar en `src` y `compat` las rutas de discovery que faltan con `grep`.
+- [ ] Añadir o corregir únicamente las rutas concretas que el cliente solicita; no inventar endpoints ni desactivar validaciones.
+- [ ] Verificar que Caddy sigue haciendo `reverse_proxy 127.0.0.1:8080` y que KromaRec escucha en `127.0.0.1:8080`.
+- [ ] Mantener Photon Gate en `127.0.0.1:8081`; no exponerlo en `0.0.0.0`.
+- [ ] Rotar `KROMAREC_JWT_SECRET` y `KROMAREC_PHOTON_GATE_KEY` porque aparecieron en el transcript.
