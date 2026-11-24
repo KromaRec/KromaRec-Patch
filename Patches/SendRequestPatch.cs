@@ -101,11 +101,9 @@ internal static class SendRequestPatch
 
     private static void ObserveCertificateReport(IBPKDJLFBHM.MCFHHMMIEHP __0)
     {
-        if (!Plugin.Debug.Value) return;
-        switch ((int)__0)
+        if (Plugin.Debug.Value)
         {
-            case 102: Plugin.Log.LogInfo("TLS report code=102"); break;
-            case 103: Plugin.Log.LogInfo("TLS report code=103"); break;
+            Plugin.Log.LogInfo($"TLS report code={(int)__0}");
         }
     }
 
